@@ -1,3 +1,3 @@
 print("Load customer data")
-print("Train mô hình Logistic Regression")
+print("Train mô hình XGBoost")
 print("Evaluate accuracy")
