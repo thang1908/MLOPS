@@ -8,6 +8,8 @@ data = [
     {"name": "Bob", "age": 28},
     {"name": "Charlie", "age": 31},
     {"name": "Diana", "age": 27},
+    {"name": "Ethan", "age": 22},
+    {"name": "Fiona", "age": 29},
 ]
 
 output_directory = Path("data")
