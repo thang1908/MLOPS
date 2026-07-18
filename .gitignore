@@ -32,3 +32,4 @@ dist/
 .vscode/
 .idea/
 /s3/
+/data
