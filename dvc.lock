@@ -1,0 +1,182 @@
+schema: '2.0'
+stages:
+  data_ingestion:
+    cmd: python src/data_ingestion.py --url 
+      https://raw.githubusercontent.com/vikashishere/Datasets/main/spam.csv 
+      --output-dir data/raw --test-size 0.2
+    deps:
+    - path: requirements.txt
+      hash: md5
+      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
+      size: 122
+    - path: src/data_ingestion.py
+      hash: md5
+      md5: 9b2abcd7c4c16654e59b0804474de866
+      size: 3052
+    - path: src/logging_utils.py
+      hash: md5
+      md5: 174c1162e90df6656f3131af2594db32
+      size: 954
+    params:
+      params.yaml:
+        data_ingestion.output_dir: data/raw
+        data_ingestion.test_size: 0.2
+        data_ingestion.url: 
+          https://raw.githubusercontent.com/vikashishere/Datasets/main/spam.csv
+    outs:
+    - path: data/raw
+      hash: md5
+      md5: da8ced9ee3593ab4ae01d0cf338651f9.dir
+      size: 481664
+      nfiles: 2
+  data_preprocessing:
+    cmd: python src/data_preprocessing.py --label-column label --text-column 
+      message
+    deps:
+    - path: data/raw/test.csv
+      hash: md5
+      md5: d1931397097315dc7120718142a0e02e
+      size: 96903
+    - path: data/raw/train.csv
+      hash: md5
+      md5: e624271e398277ee5367088288f722cf
+      size: 384761
+    - path: requirements.txt
+      hash: md5
+      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
+      size: 122
+    - path: src/data_preprocessing.py
+      hash: md5
+      md5: a6b512a5eab115e4ff0ed0d13386030c
+      size: 4644
+    - path: src/logging_utils.py
+      hash: md5
+      md5: 174c1162e90df6656f3131af2594db32
+      size: 954
+    params:
+      params.yaml:
+        data_preprocessing.label_column: label
+        data_preprocessing.text_column: message
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: e86ed34d388098e2e5e0c4452150cac1.dir
+      size: 254809
+      nfiles: 2
+  feature_engineering:
+    cmd: python src/feature_engineering.py --train-path data/processed/train.csv
+      --test-path data/processed/test.csv --output-dir data/features 
+      --text-column message --label-column label --max-features 40
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 0698107b8732e3b675d0810ae970ab2d
+      size: 53816
+    - path: data/processed/train.csv
+      hash: md5
+      md5: e3fe544783c2990051e3d013bcb381c8
+      size: 200993
+    - path: requirements.txt
+      hash: md5
+      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
+      size: 122
+    - path: src/feature_engineering.py
+      hash: md5
+      md5: e62da7a21a8293fe0212dec7ea0be499
+      size: 4443
+    - path: src/logging_utils.py
+      hash: md5
+      md5: 174c1162e90df6656f3131af2594db32
+      size: 954
+    params:
+      params.yaml:
+        feature_engineering.label_column: label
+        feature_engineering.max_features: 40
+        feature_engineering.output_dir: data/features
+        feature_engineering.test_path: data/processed/test.csv
+        feature_engineering.text_column: message
+        feature_engineering.train_path: data/processed/train.csv
+    outs:
+    - path: data/features
+      hash: md5
+      md5: be12d8892cc834b312776d9573b1b435.dir
+      size: 64994
+      nfiles: 5
+  model_building:
+    cmd: python src/model_building.py --features-path data/features/X_train.npz 
+      --labels-path data/features/y_train.csv --model-path model/model.pkl 
+      --label-column label
+    deps:
+    - path: data/features/X_train.npz
+      hash: md5
+      md5: 319449154469731ab0606d9c368126f0
+      size: 39666
+    - path: data/features/y_train.csv
+      hash: md5
+      md5: d921f8262caae7c1b8b4c5ee37c9946c
+      size: 8366
+    - path: requirements.txt
+      hash: md5
+      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
+      size: 122
+    - path: src/logging_utils.py
+      hash: md5
+      md5: 174c1162e90df6656f3131af2594db32
+      size: 954
+    - path: src/model_building.py
+      hash: md5
+      md5: da16078568e42bed060fc487b834ce09
+      size: 2583
+    params:
+      params.yaml:
+        model_building.features_path: data/features/X_train.npz
+        model_building.label_column: label
+        model_building.labels_path: data/features/y_train.csv
+        model_building.model_path: model/model.pkl
+    outs:
+    - path: model/model.pkl
+      hash: md5
+      md5: 56a527bf3c3a1529195e7c2d7f5746f4
+      size: 1183
+  model_evaluation:
+    cmd: python src/model_evaluation.py --model-path model/model.pkl 
+      --features-path data/features/X_test.npz --labels-path 
+      data/features/y_test.csv --metrics-path reports/metrics.json 
+      --label-column label
+    deps:
+    - path: data/features/X_test.npz
+      hash: md5
+      md5: 7faed29f37125f7fb05035192d1aa4e8
+      size: 12548
+    - path: data/features/y_test.csv
+      hash: md5
+      md5: 7b3000dd43b3af90096edc9da9cdda3c
+      size: 2188
+    - path: model/model.pkl
+      hash: md5
+      md5: 56a527bf3c3a1529195e7c2d7f5746f4
+      size: 1183
+    - path: requirements.txt
+      hash: md5
+      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
+      size: 122
+    - path: src/logging_utils.py
+      hash: md5
+      md5: 174c1162e90df6656f3131af2594db32
+      size: 954
+    - path: src/model_evaluation.py
+      hash: md5
+      md5: af3c58769054690c18cb4ebdae26a014
+      size: 3873
+    params:
+      params.yaml:
+        model_evaluation.features_path: data/features/X_test.npz
+        model_evaluation.label_column: label
+        model_evaluation.labels_path: data/features/y_test.csv
+        model_evaluation.metrics_path: reports/metrics.json
+        model_evaluation.model_path: model/model.pkl
+    outs:
+    - path: reports/metrics.json
+      hash: md5
+      md5: a21cc3a0ed0794b09d1f587407f4b3bc
+      size: 129

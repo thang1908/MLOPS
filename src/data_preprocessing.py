@@ -83,21 +83,43 @@ def preprocess_data(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Preprocess a raw SMS spam CSV.")
-    parser.add_argument("input_path", help="Path to a raw train/test CSV")
-    parser.add_argument("--output-path", default="data/processed/processed_data.csv")
+    parser.add_argument(
+        "input_path",
+        nargs="?",
+        help="Optional path to one raw CSV; omit to process both train and test data",
+    )
+    parser.add_argument("--output-path", help="Output path when processing one CSV")
     parser.add_argument("--label-column", default="label")
     parser.add_argument("--text-column", default="message")
     args = parser.parse_args()
 
     logger.info("Starting data preprocessing")
-    destination = preprocess_data(
-        args.input_path,
-        args.output_path,
-        args.label_column,
-        args.text_column,
-    )
+    if args.input_path:
+        output_path = args.output_path or Path("data/processed") / Path(args.input_path).name
+        destination = preprocess_data(
+            args.input_path,
+            output_path,
+            args.label_column,
+            args.text_column,
+        )
+        print(destination)
+    else:
+        if args.output_path:
+            parser.error("--output-path requires input_path")
+        train_destination = preprocess_data(
+            "data/raw/train.csv",
+            "data/processed/train.csv",
+            args.label_column,
+            args.text_column,
+        )
+        test_destination = preprocess_data(
+            "data/raw/test.csv",
+            "data/processed/test.csv",
+            args.label_column,
+            args.text_column,
+        )
+        print(f"Train: {train_destination}\nTest: {test_destination}")
     logger.info("Data preprocessing finished successfully")
-    print(destination)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,104 @@
+stages:
+  data_ingestion:
+    cmd: >-
+      python src/data_ingestion.py
+      --url ${data_ingestion.url}
+      --output-dir ${data_ingestion.output_dir}
+      --test-size ${data_ingestion.test_size}
+    deps:
+      - src/data_ingestion.py
+      - src/logging_utils.py
+      - requirements.txt
+    params:
+      - data_ingestion.url
+      - data_ingestion.output_dir
+      - data_ingestion.test_size
+    outs:
+      - data/raw
+
+  data_preprocessing:
+    cmd: >-
+      python src/data_preprocessing.py
+      --label-column ${data_preprocessing.label_column}
+      --text-column ${data_preprocessing.text_column}
+    deps:
+      - data/raw/train.csv
+      - data/raw/test.csv
+      - src/data_preprocessing.py
+      - src/logging_utils.py
+      - requirements.txt
+    params:
+      - data_preprocessing.label_column
+      - data_preprocessing.text_column
+    outs:
+      - data/processed
+
+  feature_engineering:
+    cmd: >-
+      python src/feature_engineering.py
+      --train-path ${feature_engineering.train_path}
+      --test-path ${feature_engineering.test_path}
+      --output-dir ${feature_engineering.output_dir}
+      --text-column ${feature_engineering.text_column}
+      --label-column ${feature_engineering.label_column}
+      --max-features ${feature_engineering.max_features}
+    deps:
+      - data/processed/train.csv
+      - data/processed/test.csv
+      - src/feature_engineering.py
+      - src/logging_utils.py
+      - requirements.txt
+    params:
+      - feature_engineering.train_path
+      - feature_engineering.test_path
+      - feature_engineering.output_dir
+      - feature_engineering.text_column
+      - feature_engineering.label_column
+      - feature_engineering.max_features
+    outs:
+      - data/features
+
+  model_building:
+    cmd: >-
+      python src/model_building.py
+      --features-path ${model_building.features_path}
+      --labels-path ${model_building.labels_path}
+      --model-path ${model_building.model_path}
+      --label-column ${model_building.label_column}
+    deps:
+      - data/features/X_train.npz
+      - data/features/y_train.csv
+      - src/model_building.py
+      - src/logging_utils.py
+      - requirements.txt
+    params:
+      - model_building.features_path
+      - model_building.labels_path
+      - model_building.model_path
+      - model_building.label_column
+    outs:
+      - model/model.pkl
+
+  model_evaluation:
+    cmd: >-
+      python src/model_evaluation.py
+      --model-path ${model_evaluation.model_path}
+      --features-path ${model_evaluation.features_path}
+      --labels-path ${model_evaluation.labels_path}
+      --metrics-path ${model_evaluation.metrics_path}
+      --label-column ${model_evaluation.label_column}
+    deps:
+      - model/model.pkl
+      - data/features/X_test.npz
+      - data/features/y_test.csv
+      - src/model_evaluation.py
+      - src/logging_utils.py
+      - requirements.txt
+    params:
+      - model_evaluation.model_path
+      - model_evaluation.features_path
+      - model_evaluation.labels_path
+      - model_evaluation.metrics_path
+      - model_evaluation.label_column
+    metrics:
+      - reports/metrics.json

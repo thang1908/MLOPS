@@ -21,6 +21,12 @@ def _load_processed_data(
 ) -> pd.DataFrame:
     """Read and validate one processed dataset."""
     logger.info("Reading processed CSV: %s", input_path)
+    if not Path(input_path).is_file():
+        logger.error("Processed CSV does not exist: %s", input_path)
+        raise FileNotFoundError(
+            f"Processed CSV not found: {input_path}. "
+            "Run data_preprocessing.py for both raw train.csv and raw test.csv first."
+        )
     dataframe = pd.read_csv(input_path)
     required_columns = {label_column, text_column}
     missing_columns = required_columns - set(dataframe.columns)
