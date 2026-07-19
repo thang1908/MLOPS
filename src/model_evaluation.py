@@ -11,6 +11,7 @@ from typing import Any
 
 import joblib
 import pandas as pd
+from dvclive import Live
 from scipy.sparse import csr_matrix, load_npz
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
@@ -38,6 +39,7 @@ class EvaluationConfig:
     labels_path: Path
     metrics_path: Path
     label_column: str
+    dvclive_dir: Path
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,6 +64,7 @@ def build_evaluation_config(
         labels_path=configured_path("labels_path"),
         metrics_path=configured_path("metrics_path"),
         label_column=require_string(section, STAGE_NAME, "label_column"),
+        dvclive_dir=configured_path("dvclive_dir"),
     )
 
 
@@ -136,6 +139,14 @@ def main() -> int:
         )
         metrics = evaluate_model(model, features, targets)
         metrics_path = save_metrics(metrics, config.metrics_path)
+        with Live(
+            dir=str(config.dvclive_dir),
+            save_dvc_exp=False,
+            dvcyaml=False,
+        ) as live:
+            for metric_name, metric_value in metrics.items():
+                live.log_metric(metric_name, metric_value)
+            live.next_step()
     except (
         ConfigurationError,
         FileNotFoundError,

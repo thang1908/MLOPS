@@ -5,8 +5,8 @@ stages:
     deps:
     - path: requirements.txt
       hash: md5
-      md5: 39c5af2f4b86032aa707721e38be6a5c
-      size: 136
+      md5: eef60e1743a4b9fbd963444a95729dfe
+      size: 154
     - path: src/__init__.py
       hash: md5
       md5: c0ff142025bee924dac5f6ed86437934
@@ -27,13 +27,13 @@ stages:
       params.yaml:
         data_ingestion.output_dir: data/raw
         data_ingestion.random_state: 42
-        data_ingestion.test_size: 0.2
+        data_ingestion.test_size: 0.3
         data_ingestion.url: 
           https://raw.githubusercontent.com/vikashishere/Datasets/main/spam.csv
     outs:
     - path: data/raw
       hash: md5
-      md5: da8ced9ee3593ab4ae01d0cf338651f9.dir
+      md5: 91faa003fcbb188f42d4b6290ac92f00.dir
       size: 481664
       nfiles: 2
   data_preprocessing:
@@ -41,16 +41,16 @@ stages:
     deps:
     - path: data/raw/test.csv
       hash: md5
-      md5: d1931397097315dc7120718142a0e02e
-      size: 96903
+      md5: 5734f9b344f94a0cf278562977b4d1af
+      size: 145686
     - path: data/raw/train.csv
       hash: md5
-      md5: e624271e398277ee5367088288f722cf
-      size: 384761
+      md5: 27b0bc93b356bc5ba0d5fd5f037d6cbc
+      size: 335978
     - path: requirements.txt
       hash: md5
-      md5: 39c5af2f4b86032aa707721e38be6a5c
-      size: 136
+      md5: eef60e1743a4b9fbd963444a95729dfe
+      size: 154
     - path: src/__init__.py
       hash: md5
       md5: c0ff142025bee924dac5f6ed86437934
@@ -78,24 +78,24 @@ stages:
     outs:
     - path: data/processed
       hash: md5
-      md5: e86ed34d388098e2e5e0c4452150cac1.dir
-      size: 254809
+      md5: 7cbb3dc042dc97551fa7c2b87169e25f.dir
+      size: 257096
       nfiles: 2
   feature_engineering:
     cmd: python -m src.feature_engineering --config params.yaml
     deps:
     - path: data/processed/test.csv
       hash: md5
-      md5: 0698107b8732e3b675d0810ae970ab2d
-      size: 53816
+      md5: 55220bbf50bd481a61500d0dd5b271ce
+      size: 79445
     - path: data/processed/train.csv
       hash: md5
-      md5: e3fe544783c2990051e3d013bcb381c8
-      size: 200993
+      md5: 5fcde2c465ba883ea10d31fce7813fb7
+      size: 177651
     - path: requirements.txt
       hash: md5
-      md5: 39c5af2f4b86032aa707721e38be6a5c
-      size: 136
+      md5: eef60e1743a4b9fbd963444a95729dfe
+      size: 154
     - path: src/__init__.py
       hash: md5
       md5: c0ff142025bee924dac5f6ed86437934
@@ -115,7 +115,7 @@ stages:
     params:
       params.yaml:
         feature_engineering.label_column: label
-        feature_engineering.max_features: 40
+        feature_engineering.max_features: 30
         feature_engineering.ngram_range:
         - 1
         - 2
@@ -126,24 +126,24 @@ stages:
     outs:
     - path: data/features
       hash: md5
-      md5: f00a128427fc7fac713c8bf04d411aa4.dir
-      size: 64994
+      md5: 0ddd9381f8e0bcf9d78dc51878e192d1.dir
+      size: 54041
       nfiles: 5
   model_building:
     cmd: python -m src.model_building --config params.yaml
     deps:
     - path: data/features/X_train.npz
       hash: md5
-      md5: 319449154469731ab0606d9c368126f0
-      size: 39666
+      md5: d45f9f48d41ae0e5675ab5c067c8e0d1
+      size: 27729
     - path: data/features/y_train.csv
       hash: md5
-      md5: d921f8262caae7c1b8b4c5ee37c9946c
-      size: 8366
+      md5: f0dc480ef80357470d5d03aab2b21c25
+      size: 7362
     - path: requirements.txt
       hash: md5
-      md5: 39c5af2f4b86032aa707721e38be6a5c
-      size: 136
+      md5: eef60e1743a4b9fbd963444a95729dfe
+      size: 154
     - path: src/__init__.py
       hash: md5
       md5: c0ff142025bee924dac5f6ed86437934
@@ -154,10 +154,11 @@ stages:
       size: 954
     - path: src/model_building.py
       hash: md5
-      md5: 68b7ad2a10d4fb7dfeff514f25445791
-      size: 7299
+      md5: a416c25b2abf9f6feee60789f3a6940d
+      size: 7974
     params:
       params.yaml:
+        model_building.dvclive_dir: dvclive/train
         model_building.features_path: data/features/X_train.npz
         model_building.label_column: label
         model_building.labels_path: data/features/y_train.csv
@@ -165,29 +166,33 @@ stages:
         model_building.model_path: model/model.pkl
         model_building.random_state: 42
     outs:
+    - path: dvclive/train/metrics.json
+      hash: md5
+      md5: bbc4e2cb705a1934f661c632fd9758c0
+      size: 60
     - path: model/model.pkl
       hash: md5
-      md5: 56a527bf3c3a1529195e7c2d7f5746f4
-      size: 1183
+      md5: eeccafcb0fd02906b48a0176eb773081
+      size: 1103
   model_evaluation:
     cmd: python -m src.model_evaluation --config params.yaml
     deps:
     - path: data/features/X_test.npz
       hash: md5
-      md5: 7faed29f37125f7fb05035192d1aa4e8
-      size: 12548
+      md5: 5bcc647d0c0354bdd77dfb67c7b025d5
+      size: 13810
     - path: data/features/y_test.csv
       hash: md5
-      md5: 7b3000dd43b3af90096edc9da9cdda3c
-      size: 2188
+      md5: 240230e235a5acf1fa549d2eddbd09f2
+      size: 3250
     - path: model/model.pkl
       hash: md5
-      md5: 56a527bf3c3a1529195e7c2d7f5746f4
-      size: 1183
+      md5: eeccafcb0fd02906b48a0176eb773081
+      size: 1103
     - path: requirements.txt
       hash: md5
-      md5: 39c5af2f4b86032aa707721e38be6a5c
-      size: 136
+      md5: eef60e1743a4b9fbd963444a95729dfe
+      size: 154
     - path: src/__init__.py
       hash: md5
       md5: c0ff142025bee924dac5f6ed86437934
@@ -202,17 +207,22 @@ stages:
       size: 954
     - path: src/model_evaluation.py
       hash: md5
-      md5: 2ce56ffb96e07354b237a7e919a3883f
-      size: 5763
+      md5: b8679b8b7cdf0a1dbae0dcdff392238f
+      size: 6150
     params:
       params.yaml:
+        model_evaluation.dvclive_dir: dvclive/evaluation
         model_evaluation.features_path: data/features/X_test.npz
         model_evaluation.label_column: label
         model_evaluation.labels_path: data/features/y_test.csv
         model_evaluation.metrics_path: reports/metrics.json
         model_evaluation.model_path: model/model.pkl
     outs:
+    - path: dvclive/evaluation/metrics.json
+      hash: md5
+      md5: 6a7b2bc77daa93d19b1097f90850d91f
+      size: 156
     - path: reports/metrics.json
       hash: md5
-      md5: a21cc3a0ed0794b09d1f587407f4b3bc
-      size: 129
+      md5: d28e2263dfd0c6aafce5ca2857f9f141
+      size: 133

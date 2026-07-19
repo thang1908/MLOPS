@@ -29,6 +29,7 @@ model/
 models/
 logs/*.log
 reports/*.json
+dvclive/
 
 # DVC runtime files and local cache
 .dvc/cache/

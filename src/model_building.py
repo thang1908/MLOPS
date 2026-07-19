@@ -11,6 +11,7 @@ from typing import Any
 import joblib
 import pandas as pd
 import yaml
+from dvclive import Live
 from scipy.sparse import csr_matrix, load_npz
 from sklearn.linear_model import LogisticRegression
 
@@ -34,6 +35,7 @@ class TrainingConfig:
     label_column: str
     max_iter: int
     random_state: int
+    dvclive_dir: Path
 
 
 def parse_args() -> argparse.Namespace:
@@ -107,6 +109,7 @@ def build_training_config(config: Mapping[str, Any], config_dir: Path) -> Traini
         label_column=_required_string(section, "label_column"),
         max_iter=_required_positive_int(section, "max_iter"),
         random_state=_required_int(section, "random_state"),
+        dvclive_dir=resolve_path(_required_string(section, "dvclive_dir")),
     )
 
 
@@ -180,13 +183,24 @@ def main() -> int:
             training_config.labels_path,
             training_config.label_column,
         )
-        model = train_model(
-            features,
-            targets,
-            training_config.max_iter,
-            training_config.random_state,
-        )
-        destination = save_model(model, training_config.model_path)
+        with Live(
+            dir=str(training_config.dvclive_dir),
+            save_dvc_exp=False,
+            dvcyaml=False,
+        ) as live:
+            live.log_param("max_iter", training_config.max_iter)
+            live.log_param("random_state", training_config.random_state)
+            live.log_param("n_train_samples", features.shape[0])
+            live.log_param("n_features", features.shape[1])
+            model = train_model(
+                features,
+                targets,
+                training_config.max_iter,
+                training_config.random_state,
+            )
+            destination = save_model(model, training_config.model_path)
+            live.log_metric("train_accuracy", float(model.score(features, targets)))
+            live.next_step()
     except (ConfigurationError, FileNotFoundError, OSError, ValueError) as error:
         logger.error("Model building failed: %s", error)
         return 1

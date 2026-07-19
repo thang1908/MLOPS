@@ -1,7 +1,7 @@
 data_ingestion:
   url: https://raw.githubusercontent.com/vikashishere/Datasets/main/spam.csv
   output_dir: data/raw
-  test_size: 0.2
+  test_size: 0.3
   random_state: 42
 
 data_preprocessing:
@@ -18,7 +18,7 @@ feature_engineering:
   output_dir: data/features
   text_column: message
   label_column: label
-  max_features: 40
+  max_features: 30
   ngram_range: [1, 2]
 
 model_building:
@@ -28,6 +28,7 @@ model_building:
   label_column: label
   max_iter: 1000
   random_state: 42
+  dvclive_dir: dvclive/train
 
 model_evaluation:
   model_path: model/model.pkl
@@ -35,3 +36,4 @@ model_evaluation:
   labels_path: data/features/y_test.csv
   metrics_path: reports/metrics.json
   label_column: label
+  dvclive_dir: dvclive/evaluation
