@@ -1,84 +1,115 @@
-"""Ingest the SMS spam dataset and create raw train/test datasets."""
+"""Download, validate, and split the SMS spam dataset from one YAML config."""
 
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from logging_utils import get_logger
+from src.config_utils import (
+    ConfigurationError,
+    load_config,
+    require_int,
+    require_probability,
+    require_section,
+    require_string,
+    resolve_config_path,
+)
+from src.logging_utils import get_logger
 
 
-DEFAULT_DATA_URL = "https://raw.githubusercontent.com/vikashishere/Datasets/main/spam.csv"
 logger = get_logger("data_ingestion")
+STAGE_NAME = "data_ingestion"
 
 
-def ingest_data(
-    url: str = DEFAULT_DATA_URL,
-    output_dir: str | Path = "data/raw",
-    test_size: float = 0.2,
-    random_state: int = 42,
-) -> tuple[Path, Path]:
-    """Download, clean, split, and save the spam dataset.
+@dataclass(frozen=True)
+class IngestionConfig:
+    """Validated parameters for the ingestion stage."""
 
-    The source dataset has useful columns ``v1`` and ``v2`` plus three empty
-    columns.  The output files use the clearer names ``label`` and ``message``.
-    """
-    logger.info("Reading spam dataset from URL: %s", url)
-    try:
-        dataframe = pd.read_csv(url, encoding="latin-1")
-    except Exception:
-        logger.exception("Could not read the dataset from the URL")
-        raise
+    url: str
+    output_dir: Path
+    test_size: float
+    random_state: int
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse only the path to the pipeline YAML configuration."""
+    parser = argparse.ArgumentParser(description="Ingest the configured SMS spam dataset.")
+    parser.add_argument("--config", type=Path, default=Path("params.yaml"))
+    return parser.parse_args()
+
+
+def build_ingestion_config(
+    config: Mapping[str, Any], config_dir: Path
+) -> IngestionConfig:
+    """Extract and validate the data-ingestion section of loaded YAML."""
+    section = require_section(config, STAGE_NAME)
+    return IngestionConfig(
+        url=require_string(section, STAGE_NAME, "url"),
+        output_dir=resolve_config_path(
+            require_string(section, STAGE_NAME, "output_dir"), config_dir
+        ),
+        test_size=require_probability(section, STAGE_NAME, "test_size"),
+        random_state=require_int(section, STAGE_NAME, "random_state"),
+    )
+
+
+def ingest_data(config: IngestionConfig) -> tuple[Path, Path]:
+    """Read the remote CSV, retain its useful fields, and save train/test CSVs."""
+    logger.info("Reading spam dataset from URL: %s", config.url)
+    dataframe = pd.read_csv(config.url, encoding="latin-1")
     logger.info("Downloaded %d rows and %d columns", *dataframe.shape)
 
     required_columns = {"v1", "v2"}
     missing_columns = required_columns - set(dataframe.columns)
     if missing_columns:
-        logger.error("Required columns are missing: %s", sorted(missing_columns))
-        raise ValueError(f"Missing required columns: {sorted(missing_columns)}")
+        raise ValueError(f"Source data is missing required columns: {sorted(missing_columns)}")
 
-    logger.info("Removing unused columns")
-    dataframe = dataframe[["v1", "v2"]].copy()
-    logger.info("Renaming columns: v1 -> label, v2 -> message")
-    dataframe = dataframe.rename(columns={"v1": "label", "v2": "message"})
-
-    logger.info("Splitting data into train/test sets (test_size=%s)", test_size)
-    train_data, test_data = train_test_split(
-        dataframe,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=dataframe["label"],
+    cleaned_data = dataframe[["v1", "v2"]].rename(
+        columns={"v1": "label", "v2": "message"}
     )
-    logger.info("Train rows: %d; test rows: %d", len(train_data), len(test_data))
+    if cleaned_data["label"].nunique() < 2:
+        raise ValueError("Source data must contain at least two label classes.")
 
-    destination = Path(output_dir)
-    destination.mkdir(parents=True, exist_ok=True)
-    train_path = destination / "train.csv"
-    test_path = destination / "test.csv"
+    logger.info("Splitting data into train/test sets (test_size=%.2f)", config.test_size)
+    train_data, test_data = train_test_split(
+        cleaned_data,
+        test_size=config.test_size,
+        random_state=config.random_state,
+        stratify=cleaned_data["label"],
+    )
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+    train_path = config.output_dir / "train.csv"
+    test_path = config.output_dir / "test.csv"
     train_data.to_csv(train_path, index=False)
     test_data.to_csv(test_path, index=False)
-    logger.info("Saved train data to: %s", train_path)
-    logger.info("Saved test data to: %s", test_path)
+    logger.info("Saved %d train rows to: %s", len(train_data), train_path)
+    logger.info("Saved %d test rows to: %s", len(test_data), test_path)
     return train_path, test_path
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Download, clean, and split the SMS spam dataset."
-    )
-    parser.add_argument("--url", default=DEFAULT_DATA_URL, help="CSV dataset URL")
-    parser.add_argument("--output-dir", default="data/raw", help="Directory for train/test CSVs")
-    parser.add_argument("--test-size", type=float, default=0.2)
-    args = parser.parse_args()
+def main() -> int:
+    """Load configuration once and execute the ingestion stage."""
+    config_path = parse_args().config.resolve()
+    try:
+        raw_config = load_config(config_path)
+        config = build_ingestion_config(raw_config, config_path.parent)
+        train_path, test_path = ingest_data(config)
+    except (ConfigurationError, FileNotFoundError, OSError, ValueError, pd.errors.ParserError) as error:
+        logger.error("Data ingestion failed: %s", error)
+        return 1
+    except Exception:
+        logger.exception("Unexpected data-ingestion failure")
+        return 1
 
-    logger.info("Starting data ingestion pipeline")
-    train_path, test_path = ingest_data(args.url, args.output_dir, args.test_size)
-    logger.info("Data ingestion pipeline finished successfully")
     print(f"Train: {train_path}\nTest: {test_path}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

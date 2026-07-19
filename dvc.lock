@@ -1,18 +1,24 @@
 schema: '2.0'
 stages:
   data_ingestion:
-    cmd: python src/data_ingestion.py --url 
-      https://raw.githubusercontent.com/vikashishere/Datasets/main/spam.csv 
-      --output-dir data/raw --test-size 0.2
+    cmd: python -m src.data_ingestion --config params.yaml
     deps:
     - path: requirements.txt
       hash: md5
-      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
-      size: 122
+      md5: 39c5af2f4b86032aa707721e38be6a5c
+      size: 136
+    - path: src/__init__.py
+      hash: md5
+      md5: c0ff142025bee924dac5f6ed86437934
+      size: 30
+    - path: src/config_utils.py
+      hash: md5
+      md5: e65b812a6f9988b6d7e0f40dc99e71c1
+      size: 2965
     - path: src/data_ingestion.py
       hash: md5
-      md5: 9b2abcd7c4c16654e59b0804474de866
-      size: 3052
+      md5: 2d0197b856af2ba4319880ae646f35ed
+      size: 3916
     - path: src/logging_utils.py
       hash: md5
       md5: 174c1162e90df6656f3131af2594db32
@@ -20,6 +26,7 @@ stages:
     params:
       params.yaml:
         data_ingestion.output_dir: data/raw
+        data_ingestion.random_state: 42
         data_ingestion.test_size: 0.2
         data_ingestion.url: 
           https://raw.githubusercontent.com/vikashishere/Datasets/main/spam.csv
@@ -30,8 +37,7 @@ stages:
       size: 481664
       nfiles: 2
   data_preprocessing:
-    cmd: python src/data_preprocessing.py --label-column label --text-column 
-      message
+    cmd: python -m src.data_preprocessing --config params.yaml
     deps:
     - path: data/raw/test.csv
       hash: md5
@@ -43,12 +49,20 @@ stages:
       size: 384761
     - path: requirements.txt
       hash: md5
-      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
-      size: 122
+      md5: 39c5af2f4b86032aa707721e38be6a5c
+      size: 136
+    - path: src/__init__.py
+      hash: md5
+      md5: c0ff142025bee924dac5f6ed86437934
+      size: 30
+    - path: src/config_utils.py
+      hash: md5
+      md5: e65b812a6f9988b6d7e0f40dc99e71c1
+      size: 2965
     - path: src/data_preprocessing.py
       hash: md5
-      md5: a6b512a5eab115e4ff0ed0d13386030c
-      size: 4644
+      md5: 8d9a5487801a62abb4ba5c97b6727b87
+      size: 5651
     - path: src/logging_utils.py
       hash: md5
       md5: 174c1162e90df6656f3131af2594db32
@@ -56,7 +70,11 @@ stages:
     params:
       params.yaml:
         data_preprocessing.label_column: label
+        data_preprocessing.test_input_path: data/raw/test.csv
+        data_preprocessing.test_output_path: data/processed/test.csv
         data_preprocessing.text_column: message
+        data_preprocessing.train_input_path: data/raw/train.csv
+        data_preprocessing.train_output_path: data/processed/train.csv
     outs:
     - path: data/processed
       hash: md5
@@ -64,9 +82,7 @@ stages:
       size: 254809
       nfiles: 2
   feature_engineering:
-    cmd: python src/feature_engineering.py --train-path data/processed/train.csv
-      --test-path data/processed/test.csv --output-dir data/features 
-      --text-column message --label-column label --max-features 40
+    cmd: python -m src.feature_engineering --config params.yaml
     deps:
     - path: data/processed/test.csv
       hash: md5
@@ -78,12 +94,20 @@ stages:
       size: 200993
     - path: requirements.txt
       hash: md5
-      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
-      size: 122
+      md5: 39c5af2f4b86032aa707721e38be6a5c
+      size: 136
+    - path: src/__init__.py
+      hash: md5
+      md5: c0ff142025bee924dac5f6ed86437934
+      size: 30
+    - path: src/config_utils.py
+      hash: md5
+      md5: e65b812a6f9988b6d7e0f40dc99e71c1
+      size: 2965
     - path: src/feature_engineering.py
       hash: md5
-      md5: e62da7a21a8293fe0212dec7ea0be499
-      size: 4443
+      md5: 62dcaf3999fd7042c08e22588834d5a5
+      size: 6413
     - path: src/logging_utils.py
       hash: md5
       md5: 174c1162e90df6656f3131af2594db32
@@ -92,6 +116,9 @@ stages:
       params.yaml:
         feature_engineering.label_column: label
         feature_engineering.max_features: 40
+        feature_engineering.ngram_range:
+        - 1
+        - 2
         feature_engineering.output_dir: data/features
         feature_engineering.test_path: data/processed/test.csv
         feature_engineering.text_column: message
@@ -99,13 +126,11 @@ stages:
     outs:
     - path: data/features
       hash: md5
-      md5: be12d8892cc834b312776d9573b1b435.dir
+      md5: f00a128427fc7fac713c8bf04d411aa4.dir
       size: 64994
       nfiles: 5
   model_building:
-    cmd: python src/model_building.py --features-path data/features/X_train.npz 
-      --labels-path data/features/y_train.csv --model-path model/model.pkl 
-      --label-column label
+    cmd: python -m src.model_building --config params.yaml
     deps:
     - path: data/features/X_train.npz
       hash: md5
@@ -117,32 +142,35 @@ stages:
       size: 8366
     - path: requirements.txt
       hash: md5
-      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
-      size: 122
+      md5: 39c5af2f4b86032aa707721e38be6a5c
+      size: 136
+    - path: src/__init__.py
+      hash: md5
+      md5: c0ff142025bee924dac5f6ed86437934
+      size: 30
     - path: src/logging_utils.py
       hash: md5
       md5: 174c1162e90df6656f3131af2594db32
       size: 954
     - path: src/model_building.py
       hash: md5
-      md5: da16078568e42bed060fc487b834ce09
-      size: 2583
+      md5: 68b7ad2a10d4fb7dfeff514f25445791
+      size: 7299
     params:
       params.yaml:
         model_building.features_path: data/features/X_train.npz
         model_building.label_column: label
         model_building.labels_path: data/features/y_train.csv
+        model_building.max_iter: 1000
         model_building.model_path: model/model.pkl
+        model_building.random_state: 42
     outs:
     - path: model/model.pkl
       hash: md5
       md5: 56a527bf3c3a1529195e7c2d7f5746f4
       size: 1183
   model_evaluation:
-    cmd: python src/model_evaluation.py --model-path model/model.pkl 
-      --features-path data/features/X_test.npz --labels-path 
-      data/features/y_test.csv --metrics-path reports/metrics.json 
-      --label-column label
+    cmd: python -m src.model_evaluation --config params.yaml
     deps:
     - path: data/features/X_test.npz
       hash: md5
@@ -158,16 +186,24 @@ stages:
       size: 1183
     - path: requirements.txt
       hash: md5
-      md5: 2ddc8af6bd7f3ce2444bc357a13df9d3
-      size: 122
+      md5: 39c5af2f4b86032aa707721e38be6a5c
+      size: 136
+    - path: src/__init__.py
+      hash: md5
+      md5: c0ff142025bee924dac5f6ed86437934
+      size: 30
+    - path: src/config_utils.py
+      hash: md5
+      md5: e65b812a6f9988b6d7e0f40dc99e71c1
+      size: 2965
     - path: src/logging_utils.py
       hash: md5
       md5: 174c1162e90df6656f3131af2594db32
       size: 954
     - path: src/model_evaluation.py
       hash: md5
-      md5: af3c58769054690c18cb4ebdae26a014
-      size: 3873
+      md5: 2ce56ffb96e07354b237a7e919a3883f
+      size: 5763
     params:
       params.yaml:
         model_evaluation.features_path: data/features/X_test.npz

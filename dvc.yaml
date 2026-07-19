@@ -1,11 +1,9 @@
 stages:
   data_ingestion:
-    cmd: >-
-      python src/data_ingestion.py
-      --url ${data_ingestion.url}
-      --output-dir ${data_ingestion.output_dir}
-      --test-size ${data_ingestion.test_size}
+    cmd: python -m src.data_ingestion --config params.yaml
     deps:
+      - src/__init__.py
+      - src/config_utils.py
       - src/data_ingestion.py
       - src/logging_utils.py
       - requirements.txt
@@ -13,38 +11,37 @@ stages:
       - data_ingestion.url
       - data_ingestion.output_dir
       - data_ingestion.test_size
+      - data_ingestion.random_state
     outs:
       - data/raw
 
   data_preprocessing:
-    cmd: >-
-      python src/data_preprocessing.py
-      --label-column ${data_preprocessing.label_column}
-      --text-column ${data_preprocessing.text_column}
+    cmd: python -m src.data_preprocessing --config params.yaml
     deps:
       - data/raw/train.csv
       - data/raw/test.csv
+      - src/__init__.py
+      - src/config_utils.py
       - src/data_preprocessing.py
       - src/logging_utils.py
       - requirements.txt
     params:
+      - data_preprocessing.train_input_path
+      - data_preprocessing.test_input_path
+      - data_preprocessing.train_output_path
+      - data_preprocessing.test_output_path
       - data_preprocessing.label_column
       - data_preprocessing.text_column
     outs:
       - data/processed
 
   feature_engineering:
-    cmd: >-
-      python src/feature_engineering.py
-      --train-path ${feature_engineering.train_path}
-      --test-path ${feature_engineering.test_path}
-      --output-dir ${feature_engineering.output_dir}
-      --text-column ${feature_engineering.text_column}
-      --label-column ${feature_engineering.label_column}
-      --max-features ${feature_engineering.max_features}
+    cmd: python -m src.feature_engineering --config params.yaml
     deps:
       - data/processed/train.csv
       - data/processed/test.csv
+      - src/__init__.py
+      - src/config_utils.py
       - src/feature_engineering.py
       - src/logging_utils.py
       - requirements.txt
@@ -55,19 +52,16 @@ stages:
       - feature_engineering.text_column
       - feature_engineering.label_column
       - feature_engineering.max_features
+      - feature_engineering.ngram_range
     outs:
       - data/features
 
   model_building:
-    cmd: >-
-      python src/model_building.py
-      --features-path ${model_building.features_path}
-      --labels-path ${model_building.labels_path}
-      --model-path ${model_building.model_path}
-      --label-column ${model_building.label_column}
+    cmd: python -m src.model_building --config params.yaml
     deps:
       - data/features/X_train.npz
       - data/features/y_train.csv
+      - src/__init__.py
       - src/model_building.py
       - src/logging_utils.py
       - requirements.txt
@@ -76,21 +70,19 @@ stages:
       - model_building.labels_path
       - model_building.model_path
       - model_building.label_column
+      - model_building.max_iter
+      - model_building.random_state
     outs:
       - model/model.pkl
 
   model_evaluation:
-    cmd: >-
-      python src/model_evaluation.py
-      --model-path ${model_evaluation.model_path}
-      --features-path ${model_evaluation.features_path}
-      --labels-path ${model_evaluation.labels_path}
-      --metrics-path ${model_evaluation.metrics_path}
-      --label-column ${model_evaluation.label_column}
+    cmd: python -m src.model_evaluation --config params.yaml
     deps:
       - model/model.pkl
       - data/features/X_test.npz
       - data/features/y_test.csv
+      - src/__init__.py
+      - src/config_utils.py
       - src/model_evaluation.py
       - src/logging_utils.py
       - requirements.txt
