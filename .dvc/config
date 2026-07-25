@@ -1,6 +1,0 @@
-[core]
-    site_cache_dir = .dvc/tmp/site-cache
-    remote = storage
-
-['remote "storage"']
-    url = s3://thangnguyen-mlops-artifacts/mlops-spam
