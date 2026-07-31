@@ -27,9 +27,13 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO || secrets.ECR_REPOSITORY }}
           IMAGE_TAG: latest
         run: |
+          if [ -z "$ECR_REPOSITORY" ]; then
+            echo "ERROR: Neither ECR_REPO nor ECR_REPOSITORY secret is configured in GitHub Secrets!"
+            exit 1
+          fi
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .  
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
@@ -53,5 +57,8 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Run Docker Image to serve users
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO || secrets.ECR_REPOSITORY }}
         run: |
-         docker run -d -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION || secrets.AWS_REGION || 'ap-southeast-2' }}" -e MONGODB_URL="${{ secrets.MONGODB_URL }}" -p 5000:5000 "${{ steps.login-ecr.outputs.registry }}"/"${{ secrets.ECR_REPO }}":latest
+         docker run -d -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION || secrets.AWS_REGION || 'ap-southeast-2' }}" -e MONGODB_URL="${{ secrets.MONGODB_URL }}" -p 5000:5000 $ECR_REGISTRY/$ECR_REPOSITORY:latest
